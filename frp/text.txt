@@ -1,0 +1,116 @@
+Here’s the step-by-step guide with all commands you need to install and configure **FRP server** on an **Ubuntu EC2 instance**.
+
+---
+
+### **Step 1: Connect to the EC2 Instance**
+1. Connect to your EC2 instance via SSH:
+   ```bash
+   ssh -i your-key.pem ubuntu@<your-ec2-public-ip>
+   ```
+
+---
+
+### **Step 2: Update System and Install Basic Tools**
+Run the following commands to update your system and install `wget` and `nano` (if not installed):
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install wget nano -y
+```
+
+---
+
+### **Step 3: Download and Extract FRP**
+1. Download the latest version of FRP from GitHub:
+   ```bash
+   wget https://github.com/fatedier/frp/releases/download/v0.47.0/frp_0.47.0_linux_amd64.tar.gz
+   ```
+   *(Replace `0.47.0` with the latest version if needed.)*
+
+2. Extract the archive:
+   ```bash
+   tar -xvzf frp_0.47.0_linux_amd64.tar.gz
+   cd frp_0.47.0_linux_amd64
+   ```
+
+---
+
+### **Step 4: Configure the FRP Server**
+1. Create a configuration file for FRP:
+   ```bash
+   nano frps.ini
+   ```
+
+2. Add the following content to `frps.ini`:
+   ```
+   [common]
+   bind_port = 7000
+   dashboard_port = 7500
+   dashboard_user = admin
+   dashboard_pwd = password123
+   token = your-secure-token
+   ```
+
+   Press `CTRL+O`, then `Enter` to save.  
+   Press `CTRL+X` to exit.
+
+---
+
+### **Step 5: Start FRP Server**
+1. Run the FRP server:
+   ```bash
+   ./frps -c frps.ini
+   ```
+
+   **Note:** The server will keep running until you stop it (Ctrl+C). For continuous use, set it up as a systemd service (next step).
+
+---
+
+### **Step 6: Set Up FRP as a Systemd Service (Optional but Recommended)**
+1. Create a systemd service file:
+   ```bash
+   sudo nano /etc/systemd/system/frps.service
+   ```
+
+2. Add the following content:
+   ```
+   [Unit]
+   Description=FRP Server
+   After=network.target
+
+   [Service]
+   ExecStart=/home/ubuntu/frp_0.47.0_linux_amd64/frps -c /home/ubuntu/frp_0.47.0_linux_amd64/frps.ini
+   Restart=always
+   User=ubuntu
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+   **Note:** Adjust the path `/home/ubuntu/frp_0.47.0_linux_amd64/` to your actual FRP directory.
+
+3. Reload systemd and start FRP:
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable frps
+   sudo systemctl start frps
+   sudo systemctl status frps
+   ```
+
+---
+
+### **Step 7: Configure AWS Security Group**
+1. Open your EC2 instance’s security group in the AWS console.
+2. Add inbound rules for:
+   - **Port 7000** (TCP) – FRP control channel
+   - **Port 7500** (TCP) – FRP web dashboard
+   - Any additional ports for services you want to expose.
+
+---
+
+### **Step 8: Verify the Installation**
+1. Access the FRP web dashboard:  
+   `http://<your-ec2-public-ip>:7500`
+2. Login with the configured `admin` and `password123`.
+   
+---
+
